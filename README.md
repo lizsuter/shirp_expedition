@@ -1,8 +1,8 @@
 # shirp_expedition
-shirp_expedition
 
 
-A repo for Shinnecock Bay Restoration Program (ShiRP) 2025 autonomous eDNA expedition and manuscript.
+
+A repo for Shinnecock Bay Restoration Program (ShiRP) 2024 autonomous eDNA expedition and manuscript.
 
 --
 
