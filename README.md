@@ -10,8 +10,8 @@ A repo for Shinnecock Bay Restoration Program (ShiRP) 2024 autonomous eDNA exped
 
 Reference databases generated with [RCrux](https://github.com/CalCOFI/rCRUX) 
 
-- [Elas02 databaselink](https://zenodo.org/records/18626068)
-- [MiFish databaselink](https://zenodo.org/records/19238536)
+- [Elas02 database link](https://zenodo.org/records/18626068)
+- [MiFish database link](https://zenodo.org/records/19238536)
 
 CO1 database from [MIDORI2](https://www.reference-midori.info/)
 
@@ -48,3 +48,4 @@ Notebook to filter and quality control REVAMP output:
 `Expedition-eDNA-QC-filtering.Rmd`
 
 Notebook to generate plots for manuscript:
+`Expedition-eDNA-Ecol-Analysis.Rmd`
