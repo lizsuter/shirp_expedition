@@ -1,0 +1,1156 @@
+---
+title: "Expedition eDNA Plots and Stats Analysis"
+output: html_notebook
+---
+ 
+
+<br/>
+<br/>
+
+ 
+
+# Load packages
+
+```{r}
+# rm(list = ls())
+library(tidyverse)
+library(phyloseq)
+library(vegan)
+library(RColorBrewer)
+library(microbiome)
+library(metagMisc)
+library(fantaxtic)
+library(ggrepel)
+library(paletteer)
+library(pals)
+library(compositions)
+library(hms)
+# library(ggvegan)
+```
+
+#  Import and prepare data
+
+Import-
+
+## 2024 Expedition samples**
+### Mifish-
+```{r}
+asv_count_mifish <- read.delim("/Volumes/easystore/eDNA/shirp-edna/results-revamp-2024-MiFIsh-expedition/ASV2Taxonomy/ASVs_counts_NOUNKNOWNS.tsv", header=TRUE, stringsAsFactors=FALSE)
+row.names(asv_count_mifish) <- asv_count_mifish$x
+asv_count_mifish <- asv_count_mifish %>% select(-x)
+asv_count_mifish_mat <- as.matrix(asv_count_mifish)
+
+asv_taxonomy_mifish <- read.delim("/Volumes/easystore/eDNA/shirp-edna/results-revamp-2024-MiFIsh-expedition/ASV2Taxonomy/results-revamp-2024-MiFish-expedition_asvTaxonomyTable_NOUNKNOWNS.txt", header=TRUE, stringsAsFactors=FALSE)
+row.names(asv_taxonomy_mifish) <- asv_taxonomy_mifish$ASV
+asv_taxonomy_mifish <- asv_taxonomy_mifish %>% select(-ASV)
+asv_taxonomy_mifish_mat <- as.matrix(asv_taxonomy_mifish)
+
+
+
+sample_metadata_mifish <- read.delim("/Volumes/easystore/eDNA/shirp-edna/results-revamp-2024-MiFIsh-expedition/sample_metadata_forR.txt", header=TRUE, stringsAsFactors=TRUE)
+
+# also import and join CTD values averaged over each eDNA sampling interval
+sample_metadata2 <- read.csv("/Volumes/easystore/eDNA/shirp-edna/figures-expedition/CTD_avg_eDNA_sample_intervals.csv")
+
+sample_metadata_mifish <- left_join(sample_metadata_mifish, sample_metadata2, by = c("Name.Deploy_Cartr_Library" = "Deploy_Cartr_Library"))
+
+row.names(sample_metadata_mifish) <- sample_metadata_mifish$Sample
+sample_metadata_mifish <- sample_metadata_mifish %>% select(-Sample)
+
+ASV_2024_exp_mifish = otu_table(asv_count_mifish_mat, taxa_are_rows = TRUE)
+TAX_2024_exp_mifish = tax_table(asv_taxonomy_mifish_mat)
+samples_2024_exp_mifish = sample_data(sample_metadata_mifish)
+
+phylo_2024_exp_mifish <- phyloseq(ASV_2024_exp_mifish, TAX_2024_exp_mifish, samples_2024_exp_mifish)
+
+
+```
+
+### Elas02-
+```{r}
+asv_count_elas <- read.delim("/Volumes/easystore/eDNA/shirp-edna/results-revamp-2024-Elas02-expedition/ASV2Taxonomy/ASVs_counts_NOUNKNOWNS.tsv", header=TRUE, stringsAsFactors=FALSE)
+row.names(asv_count_elas) <- asv_count_elas$x
+asv_count_elas <- asv_count_elas %>% select(-x)
+asv_count_elas_mat <- as.matrix(asv_count_elas)
+
+asv_taxonomy_elas <- read.delim("/Volumes/easystore/eDNA/shirp-edna/results-revamp-2024-Elas02-expedition/ASV2Taxonomy/results-revamp-2024-Elas02-expedition_asvTaxonomyTable_NOUNKNOWNS.txt", header=TRUE, stringsAsFactors=FALSE)
+row.names(asv_taxonomy_elas) <- asv_taxonomy_elas$ASV
+asv_taxonomy_elas <- asv_taxonomy_elas %>% select(-ASV)
+asv_taxonomy_elas_mat <- as.matrix(asv_taxonomy_elas)
+
+sample_metadata_elas <- read.delim("/Volumes/easystore/eDNA/shirp-edna/results-revamp-2024-Elas02-expedition/sample_metadata_forR.txt", header=TRUE, stringsAsFactors=TRUE)
+
+sample_metadata_elas <- left_join(sample_metadata_elas, sample_metadata2, by = c("Name.Deploy_Cartr" = "Name.Deploy_Cartr"))
+
+row.names(sample_metadata_elas) <- sample_metadata_elas$Sample
+sample_metadata_elas <- sample_metadata_elas %>% select(-Sample)
+
+ASV_2024_exp_elas = otu_table(asv_count_elas_mat, taxa_are_rows = TRUE)
+TAX_2024_exp_elas = tax_table(asv_taxonomy_elas_mat)
+samples_2024_exp_elas = sample_data(sample_metadata_elas)
+
+phylo_2024_exp_elas <- phyloseq(ASV_2024_exp_elas, TAX_2024_exp_elas, samples_2024_exp_elas)
+
+
+```
+
+
+### CO1-
+
+```{r}
+asv_count <- read.delim("/Volumes/easystore/eDNA/shirp-edna/results-revamp-2024-CO1-expedition/ASV2Taxonomy/ASVs_counts_NOUNKNOWNS.tsv", header=TRUE, stringsAsFactors=FALSE)
+
+row.names(asv_count) <- asv_count$x
+asv_count <- asv_count %>% select(-x)
+asv_count_mat <- as.matrix(asv_count)
+
+asv_taxonomy <- read.delim("/Volumes/easystore/eDNA/shirp-edna/results-revamp-2024-CO1-expedition/results-revamp-2024-CO1-expeditiona_asvTaxonomyTable_fixed.txt", header=TRUE, stringsAsFactors=FALSE)
+
+asv_taxonomy <- full_join(asv_taxonomya, asv_taxonomyb) %>% full_join(asv_taxonomyc)
+
+row.names(asv_taxonomy) <- asv_taxonomy$ASV
+asv_taxonomy <- asv_taxonomy %>% select(-ASV)
+asv_taxonomy_mat <- as.matrix(asv_taxonomy)
+
+sample_metadata <- read.delim("/Volumes/easystore/eDNA/shirp-edna/results-revamp-2024-CO1-expedition/sample_metadata_forR.txt", header=TRUE, stringsAsFactors=TRUE)
+sample_metadata$Deployment <- as.factor(sample_metadata$Deployment)
+sample_metadata$sites <- as.factor(sample_metadata$sites)
+
+row.names(sample_metadata_co1) <- sample_metadata_co1$Sample
+sample_metadata_co1 <- sample_metadata_co1 %>% select(-Sample)
+
+
+ASV_2024_exp_co1 = otu_table(asv_count_mat, taxa_are_rows = TRUE)
+TAX_2024_exp_co1 = tax_table(asv_taxonomy_mat)
+samples_2024_exp_co1 = sample_data(sample_metadata_co1)
+
+
+# set NAs to zeroes
+ASV_2024_exp_co1[is.na(ASV_2024_exp_co1)] <- 0
+
+
+phylo_2024_exp_co1 <- phyloseq(ASV_2024_exp_co1, TAX_2024_exp_co1, samples_2024_exp_co1)
+
+```
+
+
+
+
+
+
+## 2024 Manual samples**
+To compare September hand samples directly to USV-RoCSI samples
+### Mifish-
+```{r}
+asv_count_mifish <- read.delim("/Volumes/easystore/eDNA/shirp-edna/results-revamp-2024-MiFIsh/ASV2Taxonomy/ASVs_counts_NOUNKNOWNS.tsv", header=TRUE, stringsAsFactors=FALSE)
+row.names(asv_count_mifish) <- asv_count_mifish$x
+asv_count_mifish <- asv_count_mifish %>% select(-x)
+asv_count_mifish_mat <- as.matrix(asv_count_mifish)
+
+asv_taxonomy_mifish <- read.delim("/Volumes/easystore/eDNA/shirp-edna/results-revamp-2024-MiFIsh/ASV2Taxonomy/results-revamp-2024-MiFish_asvTaxonomyTable_NOUNKNOWNS.txt", header=TRUE, stringsAsFactors=FALSE)
+row.names(asv_taxonomy_mifish) <- asv_taxonomy_mifish$ASV
+asv_taxonomy_mifish <- asv_taxonomy_mifish %>% select(-ASV)
+asv_taxonomy_mifish_mat <- as.matrix(asv_taxonomy_mifish)
+
+sample_metadata_mifish <- read.delim("/Volumes/easystore/eDNA/shirp-edna/results-revamp-2024-MiFIsh/sample_metadata_forR.txt", header=TRUE, stringsAsFactors=TRUE)
+row.names(sample_metadata_mifish) <- sample_metadata_mifish$Sample
+sample_metadata_mifish <- sample_metadata_mifish %>% select(-Sample)
+
+ASV_2024_trawl_mifish = otu_table(asv_count_mifish_mat, taxa_are_rows = TRUE)
+TAX_2024_trawl_mifish = tax_table(asv_taxonomy_mifish_mat)
+samples_2024_trawl_mifish = sample_data(sample_metadata_mifish)
+
+phylo_2024_trawl_mifish <- phyloseq(ASV_2024_trawl_mifish, TAX_2024_trawl_mifish, samples_2024_trawl_mifish)
+
+
+```
+
+### Elas02-
+```{r}
+asv_count_elas <- read.delim("/Volumes/easystore/eDNA/shirp-edna/results-revamp-2024-Elas02/ASV2Taxonomy/ASVs_counts_NOUNKNOWNS.tsv", header=TRUE, stringsAsFactors=FALSE)
+row.names(asv_count_elas) <- asv_count_elas$x
+asv_count_elas <- asv_count_elas %>% select(-x)
+asv_count_elas_mat <- as.matrix(asv_count_elas)
+
+asv_taxonomy_elas <- read.delim("/Volumes/easystore/eDNA/shirp-edna/results-revamp-2024-Elas02/ASV2Taxonomy/results-revamp-2024-Elas02_asvTaxonomyTable_NOUNKNOWNS.txt", header=TRUE, stringsAsFactors=FALSE)
+row.names(asv_taxonomy_elas) <- asv_taxonomy_elas$ASV
+asv_taxonomy_elas <- asv_taxonomy_elas %>% select(-ASV)
+asv_taxonomy_elas_mat <- as.matrix(asv_taxonomy_elas)
+
+sample_metadata_elas <- read.delim("/Volumes/easystore/eDNA/shirp-edna/results-revamp-2024-Elas02/sample_metadata_forR.txt", header=TRUE, stringsAsFactors=TRUE)
+row.names(sample_metadata_elas) <- sample_metadata_elas$Sample
+sample_metadata_elas <- sample_metadata_elas %>% select(-Sample)
+
+ASV_2024_trawl_elas = otu_table(asv_count_elas_mat, taxa_are_rows = TRUE)
+TAX_2024_trawl_elas = tax_table(asv_taxonomy_elas_mat)
+samples_2024_trawl_elas = sample_data(sample_metadata_elas)
+
+phylo_2024_trawl_elas <- phyloseq(ASV_2024_trawl_elas, TAX_2024_trawl_elas, samples_2024_trawl_elas)
+
+
+```
+
+### CO1
+```{r}
+asv_counta <- read.delim("/Volumes/easystore/eDNA/shirp-edna/results-revamp-2024-CO1/ASV2Taxonomy/ASVs_counts_NOUNKNOWNS.tsv", header=TRUE, stringsAsFactors=FALSE)
+
+row.names(asv_count) <- asv_count$x
+asv_count <- asv_count %>% select(-x)
+asv_count_mat <- as.matrix(asv_count)
+
+asv_taxonomy <- read.delim("/Volumes/easystore/eDNA/shirp-edna/results-revamp-2024-CO1T/results-revamp-2024-CO1_Updated_asvTaxonomyTable_fixed.txt", header=TRUE, stringsAsFactors=FALSE)
+
+row.names(asv_taxonomy) <- asv_taxonomy$ASV
+asv_taxonomy <- asv_taxonomy %>% select(-ASV)
+asv_taxonomy_mat <- as.matrix(asv_taxonomy)
+
+sample_metadata <- read.delim("/Volumes/easystore/eDNA/shirp-edna/results-revamp-2024-CO1/sample_metadata_forR.txt", header=TRUE, stringsAsFactors=TRUE)
+
+row.names(sample_metadata_co1) <- sample_metadata_co1$Sample
+sample_metadata_co1 <- sample_metadata_co1 %>% select(-Sample)
+
+ASV_2024_trawl_co1 = otu_table(asv_count_mat, taxa_are_rows = TRUE)
+TAX_2024_trawl_co1 = tax_table(asv_taxonomy_mat)
+samples_2024_trawl_co1 = sample_data(sample_metadata_co1)
+
+
+# set NAs to zeroes
+ASV_2024_trawl_co1[is.na(ASV_2024_trawl_co1)] <- 0
+
+
+phylo_2024_trawl_co1 <- phyloseq(ASV_2024_trawl_co1, TAX_2024_trawl_co1, samples_2024_trawl_co1)
+
+```
+
+
+
+
+
+
+For this analysis, I am only using the trawl results that coincide with the expedition (will do the rest of the season in another analysis).
+
+Filter by date (expedition was 9/10-9/19/24)
+
+```{r}
+phylo_2024_trawl_mifish = subset_samples(phylo_2024_trawl_mifish, Datecode %in% c("20240910","20240916"))
+
+phylo_2024_trawl_elas = subset_samples(phylo_2024_trawl_elas, Datecode %in% c("20240910","20240916"))
+
+phylo_2024_trawl_co1 = subset_samples(phylo_2024_trawl_co1, Datecode %in% c("20240910","20240916"))
+```
+
+#### Save variables up to here 
+```{r}
+save.image(file = "figures-expedition/phyloseq_objects_unfiltered.RData")
+```
+
+load if returning
+```{r}
+load("figures-expedition/phyloseq_objects_unfiltered.RData")
+```
+
+
+
+
+
+
+
+# QC and filtering
+
+View sample sums, sort from min to max, to flag low-sequencing-effort samples:
+```{r}
+as.data.frame(sort(sample_sums(phylo_2024_exp_mifish)))
+as.data.frame(sort(sample_sums(phylo_2024_exp_elas)))
+as.data.frame(sort(sample_sums(phylo_2024_exp_co1)))
+
+as.data.frame(sort(sample_sums(phylo_2024_trawl_mifish)))
+as.data.frame(sort(sample_sums(phylo_2024_trawl_elas)))
+as.data.frame(sort(sample_sums(phylo_2024_trawl_co1)))
+
+
+```
+
+
+
+
+## Curating
+
+### Replace NAs in taxonomy 
+
+Check what they look like before replacement
+```{r}
+# Exp/ MiFish
+data.frame(tax_table(phylo_2024_exp_mifish)) # all taxa
+data.frame(tax_table(subset_taxa(phylo_2024_exp_mifish, is.na(Species)))) # taxa with NAs
+
+# Exp/ Elas
+data.frame(tax_table(phylo_2024_exp_elas))
+data.frame(tax_table(subset_taxa(phylo_2024_exp_elas, is.na(Species))))
+
+# Exp/ CO1
+data.frame(tax_table(phylo_2024_exp_co1))
+data.frame(tax_table(subset_taxa(phylo_2024_exp_co1, is.na(Species))))
+
+
+# Trawl/ MiFish
+data.frame(tax_table(phylo_2024_trawl_mifish))
+data.frame(tax_table(subset_taxa(phylo_2024_trawl_mifish, is.na(Species))))
+
+# Trawl/ Elas
+data.frame(tax_table(phylo_2024_trawl_elas))
+data.frame(tax_table(subset_taxa(phylo_2024_trawl_elas, is.na(Species))))
+
+# Trawl/ CO1
+data.frame(tax_table(phylo_2024_trawl_co1))
+data.frame(tax_table(subset_taxa(phylo_2024_trawl_co1, is.na(Species))))
+```
+
+
+```{r}
+# Replace NA in taxa list with next highest annotated taxon
+tax_table(phylo_2024_exp_mifish) <- tax_table(fantaxtic::name_na_taxa(phylo_2024_exp_mifish, include_rank = T))
+
+tax_table(phylo_2024_exp_elas) <- tax_table(fantaxtic::name_na_taxa(phylo_2024_exp_elas, include_rank = T))
+
+tax_table(phylo_2024_exp_co1) <- tax_table(fantaxtic::name_na_taxa(phylo_2024_exp_co1, include_rank = T))
+
+tax_table(phylo_2024_trawl_mifish) <- tax_table(fantaxtic::name_na_taxa(phylo_2024_trawl_mifish, include_rank = T))
+
+tax_table(phylo_2024_trawl_elas) <- tax_table(fantaxtic::name_na_taxa(phylo_2024_trawl_elas, include_rank = T))
+
+tax_table(phylo_2024_trawl_co1) <- tax_table(fantaxtic::name_na_taxa(phylo_2024_trawl_co1, include_rank = T))
+
+
+# Check after replacement
+data.frame(tax_table(phylo_2024_exp_mifish))
+data.frame(tax_table(phylo_2024_exp_elas))
+data.frame(tax_table(phylo_2024_exp_co1))
+
+data.frame(tax_table(phylo_2024_trawl_mifish))
+data.frame(tax_table(phylo_2024_trawl_elas))
+data.frame(tax_table(phylo_2024_trawl_co1))
+
+```
+
+
+
+
+#### Start filtering by taxonomy
+
+Meanwhile, rename *filtered* phyloseq objects to `ps` from `phylo`. 
+So `ps2024_exp_mifish`. Unfiltered is `phylo_2024_exp_mifish`, etc.
+
+##### Remove prokaryotes
+MiFish/ Expedition-
+```{r}
+nrow(tax_table(phylo_2024_exp_mifish)) # number of taxa before filtering
+ps2024_exp_mifish <- subset_taxa(phylo_2024_exp_mifish, !Kingdom == 'Bacteria')
+nrow(tax_table(ps2024_exp_mifish)) # number of taxa left
+unique(tax_table(ps2024_exp_mifish)[, 1])
+```
+
+
+Elas02/ Expedition-
+There are no Bacteria in Exp/Elas02 library
+
+
+
+CO1/ Expedition-
+```{r}
+nrow(tax_table(phylo_2024_exp_co1)) # number of taxa before filtering
+ps2024_exp_co1 <- subset_taxa(phylo_2024_exp_co1, !Kingdom == 'Bacteria')
+nrow(tax_table(ps2024_exp_co1)) # number of taxa left
+unique(tax_table(ps2024_exp_co1)[, 1])
+```
+
+
+MiFish/ Trawl-
+```{r}
+nrow(tax_table(phylo_2024_trawl_mifish)) # number of taxa before filtering
+ps2024_trawl_mifish <- subset_taxa(phylo_2024_trawl_mifish, !Kingdom == 'Bacteria')
+nrow(tax_table(ps2024_trawl_mifish)) # number of taxa left
+unique(tax_table(ps2024_trawl_mifish)[, 1])
+```
+
+
+Elas02/ Trawl-
+There are no Bacteria in Exp/Elas02 library
+
+
+CO1/ Trawl-
+```{r}
+nrow(tax_table(phylo_2024_trawl_co1)) # number of taxa before filtering
+ps2024_trawl_co1 <- subset_taxa(phylo_2024_trawl_co1, !Kingdom == 'Bacteria')
+nrow(tax_table(ps2024_trawl_co1)) # number of taxa left
+unique(tax_table(ps2024_trawl_co1)[, 1])
+```
+
+
+
+##### Remove non-marine mammals
+
+Exp/MiFish-
+```{r}
+as.data.frame(unique(tax_table(ps2024_exp_mifish)[, 7]))
+nrow(tax_table(ps2024_exp_mifish)) # number of ASVs before filtering
+
+ps2024_exp_mifish <- subset_taxa(ps2024_exp_mifish, !Species == 'Canis lupus' & !Species == 'Mus musculus' & !Species == 'Homo sapiens' & !Species == 'Sus scrofa' & !Species == 'Unknown Canis (Genus)' & !Species == 'Procyon lotor' & !Species == 'Bos taurus')
+
+nrow(tax_table(ps2024_exp_mifish)) # number of ASVs left
+as.data.frame(unique(tax_table(ps2024_exp_mifish)[, 7]))
+```
+1148 species taxa remain from the original 2085
+
+
+Exp/Elas02- 
+```{r}
+nrow(tax_table(phylo_2024_exp_elas)) # number of taxa before filtering
+ps2024_exp_elas <- subset_taxa(phylo_2024_exp_elas, !Class == 'Mammalia')
+nrow(tax_table(ps2024_exp_elas)) # number of taxa left
+as.data.frame(unique(tax_table(ps2024_exp_elas)[, 7]))
+
+```
+1232 unique taxa remain
+
+
+
+Exp/CO1- 
+```{r}
+nrow(tax_table(ps2024_exp_co1)) # number of taxa before filtering
+ps2024_exp_co1 <- subset_taxa(ps2024_exp_co1, !Class == 'Mammalia')
+nrow(tax_table(ps2024_exp_co1)) # number of taxa left
+as.data.frame(unique(tax_table(ps2024_exp_co1)[, 7]))
+
+```
+39,617 ASVs remain of the 39,640 eukaryotic ASVs
+
+
+Trawl/MiFish-
+```{r}
+as.data.frame(unique(tax_table(ps2024_trawl_mifish)[, 7]))
+nrow(tax_table(ps2024_trawl_mifish)) # number of ASVs before filtering
+
+ps2024_trawl_mifish <- subset_taxa(ps2024_trawl_mifish, !Class == 'Mammalia')
+
+nrow(tax_table(ps2024_trawl_mifish)) # number of ASVs left
+as.data.frame(unique(tax_table(ps2024_trawl_mifish)[, 7]))
+```
+1417 unique taxa remain 
+
+
+Trawl/Elas02- 
+```{r}
+nrow(tax_table(phylo_2024_trawl_elas)) # number of taxa before filtering
+ps2024_trawl_elas <- subset_taxa(phylo_2024_trawl_elas, !Class == 'Mammalia')
+nrow(tax_table(ps2024_trawl_elas)) # number of taxa left
+as.data.frame(unique(tax_table(ps2024_trawl_elas)[, 7]))
+
+```
+1528 unique taxa remain
+
+Trawl/CO1
+```{r}
+nrow(tax_table(ps2024_trawl_co1)) # number of taxa before filtering
+ps2024_trawl_co1 <- subset_taxa(ps2024_trawl_co1, !Class == 'Mammalia')
+nrow(tax_table(ps2024_trawl_co1)) # number of taxa left
+as.data.frame(unique(tax_table(ps2024_trawl_co1)[, 7]))
+
+```
+34216 ASVs remain
+
+
+##### Remove aves that are not waterfowl
+
+
+```{r}
+# subset_taxa(ps2024_exp_mifish, Class == 'Aves')
+
+subset_taxa(ps2024_exp_elas, Class == 'Aves')
+unique(tax_table(subset_taxa(ps2024_exp_elas, Class == 'Aves')))
+
+subset_taxa(ps2024_trawl_mifish, Class == 'Aves')
+unique(tax_table(subset_taxa(ps2024_trawl_mifish, Class == 'Aves')))
+
+subset_taxa(ps2024_trawl_elas, Class == 'Aves')
+unique(tax_table(subset_taxa(ps2024_trawl_elas, Class == 'Aves')))
+```
+
+
+```{r}
+# ps2024_exp_mifish <-   subset_taxa(ps2024_exp_mifish, !Class == 'Aves')
+nrow(tax_table(ps2024_exp_mifish)) # number of taxa left
+as.data.frame(unique(tax_table(ps2024_exp_mifish)[, 4]))
+as.data.frame(unique(tax_table(ps2024_exp_mifish)[, 7]))
+
+ps2024_exp_elas <-   subset_taxa(ps2024_exp_elas, !Class == 'Aves')
+nrow(tax_table(ps2024_exp_elas)) # number of taxa left
+as.data.frame(unique(tax_table(ps2024_exp_elas)[, 4]))
+as.data.frame(unique(tax_table(ps2024_exp_elas)[, 7]))
+
+ps2024_trawl_mifish <-   subset_taxa(ps2024_trawl_mifish, !Class == 'Aves')
+nrow(tax_table(ps2024_trawl_mifish)) # number of taxa left
+as.data.frame(unique(tax_table(ps2024_trawl_mifish)[, 4]))
+as.data.frame(unique(tax_table(ps2024_trawl_mifish)[, 7]))
+
+ps2024_trawl_elas <-   subset_taxa(ps2024_trawl_elas, !Class == 'Aves')
+nrow(tax_table(ps2024_trawl_elas)) # number of taxa left
+as.data.frame(unique(tax_table(ps2024_trawl_elas)[, 4]))
+as.data.frame(unique(tax_table(ps2024_trawl_elas)[, 7]))
+```
+
+
+
+
+
+
+### Add in common names
+
+Import common names from my ongoing list
+```{r}
+commonnames <- read_csv(file = "../eDNA-databases/commonnames.csv")
+```
+
+Update phyloseq objects with common name column
+```{r}
+# Extract, update, tax_table
+taxonomy_exp_mifish <- as.data.frame(tax_table(ps2024_exp_mifish)) %>%
+  rownames_to_column("ASV") %>%
+  left_join(commonnames, by = c("Species" = "Taxon"))
+row.names(taxonomy_exp_mifish) <- taxonomy_exp_mifish$ASV
+taxonomy_exp_mifish <- taxonomy_exp_mifish %>% select(-ASV)
+# Update the phyloseq object
+tax_table(ps2024_exp_mifish) <- as.matrix(taxonomy_exp_mifish)
+
+taxonomy_exp_elas <- as.data.frame(tax_table(ps2024_exp_elas)) %>%
+  rownames_to_column("ASV") %>%
+  left_join(commonnames, by = c("Species" = "Taxon"))
+row.names(taxonomy_exp_elas) <- taxonomy_exp_elas$ASV
+taxonomy_exp_elas <- taxonomy_exp_elas %>% select(-ASV)
+# Update the phyloseq object
+tax_table(ps2024_exp_elas) <- as.matrix(taxonomy_exp_elas)
+
+taxonomy_exp_co1 <- as.data.frame(tax_table(ps2024_exp_co1)) %>%
+  rownames_to_column("ASV") %>%
+  left_join(commonnames, by = c("Species" = "Taxon"))
+row.names(taxonomy_exp_co1) <- taxonomy_exp_co1$ASV
+taxonomy_exp_co1 <- taxonomy_exp_co1 %>% select(-ASV)
+# Update the phyloseq object
+tax_table(ps2024_exp_co1) <- as.matrix(taxonomy_exp_co1)
+
+
+taxonomy_trawl_mifish <- as.data.frame(tax_table(ps2024_trawl_mifish)) %>%
+  rownames_to_column("ASV") %>%
+  left_join(commonnames, by = c("Species" = "Taxon"))
+row.names(taxonomy_trawl_mifish) <- taxonomy_trawl_mifish$ASV
+taxonomy_trawl_mifish <- taxonomy_trawl_mifish %>% select(-ASV)
+# Update the phyloseq object
+tax_table(ps2024_trawl_mifish) <- as.matrix(taxonomy_trawl_mifish)
+
+taxonomy_trawl_elas <- as.data.frame(tax_table(ps2024_trawl_elas)) %>%
+  rownames_to_column("ASV") %>%
+  left_join(commonnames, by = c("Species" = "Taxon"))
+row.names(taxonomy_trawl_elas) <- taxonomy_trawl_elas$ASV
+taxonomy_trawl_elas <- taxonomy_trawl_elas %>% select(-ASV)
+# Update the phyloseq object
+tax_table(ps2024_trawl_elas) <- as.matrix(taxonomy_trawl_elas)
+
+taxonomy_trawl_co1 <- as.data.frame(tax_table(ps2024_trawl_co1)) %>%
+  rownames_to_column("ASV") %>%
+  left_join(commonnames, by = c("Species" = "Taxon"))
+row.names(taxonomy_trawl_co1) <- taxonomy_trawl_co1$ASV
+taxonomy_trawl_co1 <- taxonomy_trawl_co1 %>% select(-ASV)
+# Update the phyloseq object
+tax_table(ps2024_trawl_co1) <- as.matrix(taxonomy_trawl_co1)
+
+# Check
+data.frame(tax_table(ps2024_exp_mifish))
+data.frame(tax_table(ps2024_exp_elas))
+data.frame(tax_table(ps2024_exp_co1))
+
+data.frame(tax_table(ps2024_trawl_mifish))
+data.frame(tax_table(ps2024_trawl_elas))
+data.frame(tax_table(ps2024_trawl_co1))
+```
+
+#### Save variables up to here
+```{r}
+save.image(file = "figures-expedition/phyloseq_objects_filtered.RData")
+```
+
+load if returning
+```{r}
+load("figures-expedition/phyloseq_objects_filtered.RData")
+```
+
+
+### Controls
+Check remaining ASVs in neg controls 
+
+MiFish/ Expedition-
+```{r}
+data.frame(otu_table(ps2024_exp_mifish)[,which(sample_data(ps2024_exp_mifish)$controls == "negative")])
+max(otu_table(ps2024_exp_mifish)[,which(sample_data(ps2024_exp_mifish)$controls == "negative")])
+```
+
+
+
+Elas02/ Expedition-
+```{r}
+data.frame(otu_table(ps2024_exp_elas)[,which(sample_data(ps2024_exp_elas)$controls == "negative")])
+max(otu_table(ps2024_exp_elas)[,which(sample_data(ps2024_exp_elas)$controls == "negative")])
+```
+
+
+
+CO1/ Expedition-
+```{r}
+data.frame(otu_table(ps2024_exp_co1)[,which(sample_data(ps2024_exp_co1)$controls == "negative")])
+max(otu_table(ps2024_exp_co1)[,which(sample_data(ps2024_exp_co1)$controls == "negative")])
+```
+
+
+```{r}
+neg_controls_df <- data.frame(otu_table(ps2024_exp_co1)[, which(sample_data(ps2024_exp_co1)$controls == "negative")])
+neg_controls_df$TotalAbundance <- rowSums(neg_controls_df)
+neg_controls_sorted <- neg_controls_df %>%
+  arrange(desc(TotalAbundance))
+
+neg_controls_sorted
+
+
+# what is the taxonomy of these
+df.neg.ASVs <- as.data.frame(tax_table(phylo_2024_exp_co1)[rownames(data.frame(otu_table(ps2024_exp_co1)[,which(sample_data(ps2024_exp_co1)$controls == "positive")]))])
+
+df.neg.ASVs[rownames(neg_controls_sorted),]
+```
+
+
+
+MiFish/ Trawl-
+```{r}
+data.frame(otu_table(ps2024_trawl_mifish)[,which(sample_data(ps2024_trawl_mifish)$controls == "negative")])
+max(otu_table(ps2024_trawl_mifish)[,which(sample_data(ps2024_trawl_mifish)$controls == "negative")])
+```
+
+Elas/ Trawl-
+```{r}
+data.frame(otu_table(ps2024_trawl_elas)[,which(sample_data(ps2024_trawl_elas)$controls == "negative")])
+max(otu_table(ps2024_trawl_elas)[,which(sample_data(ps2024_trawl_elas)$controls == "negative")])
+```
+
+
+
+
+CO1/ Trawl-
+```{r}
+data.frame(otu_table(ps2024_trawl_co1)[,which(sample_data(ps2024_trawl_co1)$controls == "negative")])
+max(otu_table(ps2024_trawl_co1)[,which(sample_data(ps2024_trawl_co1)$controls == "negative")])
+```
+```{r}
+neg_controls_df <- data.frame(otu_table(ps2024_trawl_co1)[, which(sample_data(ps2024_trawl_co1)$controls == "negative")])
+neg_controls_df$TotalAbundance <- rowSums(neg_controls_df)
+neg_controls_sorted <- neg_controls_df %>%
+  arrange(desc(TotalAbundance))
+
+neg_controls_sorted
+
+
+# what is the taxonomy of these
+df.neg.ASVs <- as.data.frame(tax_table(phylo_2024_trawl_co1)[rownames(data.frame(otu_table(ps2024_trawl_co1)[,which(sample_data(ps2024_trawl_co1)$controls == "positive")]))])
+
+df.neg.ASVs[rownames(neg_controls_sorted),]
+```
+
+Check which species are abundant in the pos controls 
+
+
+Exp/MiFish-
+```{r}
+df.pos <- as.data.frame(otu_table(ps2024_exp_mifish)[,which(sample_data(ps2024_exp_mifish)$controls == "positive")])
+
+# arrange ASVs from pos ctl in descending order to see most abundant
+df.pos <- df.pos %>% mutate(Sum = MP_C_4ES2_S25_L001+MP_C_5ES2_S25_L001) %>% arrange(desc(Sum))
+df.pos
+  
+# what is the taxonomy of these
+df.pos.ASVs <- as.data.frame(tax_table(phylo_2024_exp_mifish)[rownames(data.frame(otu_table(ps2024_exp_mifish)[,which(sample_data(ps2024_exp_mifish)$controls == "positive")]))])
+
+df.pos.ASVs[rownames(df.pos),]
+```
+
+
+
+Remove ASVs with less than 500 reads in a sample. 
+
+Exp/MiFish-
+```{r}
+data.frame(otu_table(ps2024_exp_mifish)) # compare before
+
+ps2024_exp_mifish <- metagMisc::phyloseq_filter_sample_wise_abund_trim(
+  ps2024_exp_mifish,
+  minabund = 500,
+  relabund = FALSE)
+
+data.frame(otu_table(ps2024_exp_mifish)) # and after
+```
+
+
+
+
+
+Exp/Elas02-
+```{r}
+data.frame(otu_table(ps2024_exp_elas)) # compare before
+
+ps2024_exp_elas <- metagMisc::phyloseq_filter_sample_wise_abund_trim(
+  ps2024_exp_elas,
+  minabund = 500,
+  relabund = FALSE)
+
+data.frame(otu_table(ps2024_exp_elas)) # and after
+```
+
+
+Exp/CO1-
+
+```{r}
+df.pos <- as.data.frame(otu_table(ps2024_exp_co1)[,which(sample_data(ps2024_exp_co1)$controls == "positive")])
+
+# arrange ASVs from pos ctl in descending order to see most abundant
+df.pos <- df.pos %>% mutate(Sum = MP_C_4_S1_L001+MP_C_5_S1_L001) %>% arrange(desc(Sum))
+df.pos
+  
+# what is the taxonomy of these
+df.pos.ASVs <- as.data.frame(tax_table(phylo_2024_exp_co1)[rownames(data.frame(otu_table(ps2024_exp_co1)[,which(sample_data(ps2024_exp_co1)$controls == "positive")]))])
+
+df.pos.ASVs[rownames(df.pos),]
+```
+
+
+Trawl/MiFish-
+```{r}
+data.frame(otu_table(ps2024_trawl_mifish)) # compare before
+
+ps2024_trawl_mifish <- metagMisc::phyloseq_filter_sample_wise_abund_trim(
+  ps2024_trawl_mifish,
+  minabund = 500,
+  relabund = FALSE)
+
+data.frame(otu_table(ps2024_trawl_mifish)) # and after
+```
+
+
+
+
+Trawl/Elas02-
+```{r}
+data.frame(otu_table(ps2024_trawl_elas)) # compare before
+
+ps2024_trawl_elas <- metagMisc::phyloseq_filter_sample_wise_abund_trim(
+  ps2024_trawl_elas,
+  minabund = 500,
+  relabund = FALSE)
+
+data.frame(otu_table(ps2024_trawl_elas)) # and after
+```
+
+
+
+
+Trawl/CO1-
+
+```{r}
+df.pos <- as.data.frame(otu_table(ps2024_trawl_co1)[,which(sample_data(ps2024_trawl_co1)$controls == "positive")])
+
+# arrange ASVs from pos ctl in descending order to see most abundant
+df.pos <- df.pos %>% mutate(Sum = MP_S_Positive_S1_L001+MP_STPositive_S1_L001
+) %>% arrange(desc(Sum))
+df.pos
+  
+# what is the taxonomy of these
+df.pos.ASVs <- as.data.frame(tax_table(phylo_2024_trawl_co1)[rownames(data.frame(otu_table(ps2024_trawl_co1)[,which(sample_data(ps2024_trawl_co1)$controls == "positive")]))])
+
+df.pos.ASVs[rownames(df.pos),]
+```
+
+
+
+
+#### Save variables up to here 
+```{r}
+save.image(file = "figures-expedition/environment_upto_filtering_controls.RData")
+```
+
+load if returning
+```{r}
+load("figures-expedition/environment_upto_filtering_controls.RData")
+```
+
+
+### Agglomerate by taxonomy
+
+Exp/MiFish-
+```{r}
+ps2024_exp_mifish_glommed <- tax_glom(ps2024_exp_mifish, "Taxon.CommonName")
+
+# plot total reads
+plot_bar(ps2024_exp_mifish_glommed, x = "Name.Deploy_Cartr_Library")
+
+# view tax_table
+data.frame(tax_table(ps2024_exp_mifish_glommed))
+```
+
+
+
+Exp/Elas02-
+```{r}
+ps2024_exp_elas_glommed <- tax_glom(ps2024_exp_elas, "Taxon.CommonName")
+
+# plot total reads
+plot_bar(ps2024_exp_elas_glommed, x = "Name_Deploy_Cartr_Library")
+
+# view tax_table
+data.frame(tax_table(ps2024_exp_elas_glommed))
+```
+
+
+Exp/CO1-
+
+
+```{r}
+ps2024_exp_co1_glommed <- tax_glom(ps2024_exp_co1, "Species")
+
+# plot total reads
+plot_bar(ps2024_exp_co1, x = "Name_Deploy_Cartr")
+
+# view tax_table
+data.frame(tax_table(ps2024_exp_co1_glommed))
+```
+
+
+Trawl/MiFish-
+```{r}
+ps2024_trawl_mifish_glommed <- tax_glom(ps2024_trawl_mifish, "Taxon.CommonName")
+
+# plot total reads
+plot_bar(ps2024_trawl_mifish_glommed)
+
+# view tax_table
+data.frame(tax_table(ps2024_trawl_mifish_glommed))
+```
+
+Trawl/MiFish-
+```{r}
+ps2024_trawl_elas_glommed <- tax_glom(ps2024_trawl_elas, "Taxon.CommonName")
+
+# plot total reads
+plot_bar(ps2024_trawl_elas_glommed)
+
+# view tax_table
+data.frame(tax_table(ps2024_trawl_elas_glommed))
+```
+
+
+Trawl/CO1-
+
+```{r}
+ps2024_trawl_co1_glommed <- tax_glom(ps2024_trawl_co1, "Species")
+
+# plot total reads
+plot_bar(ps2024_trawl_co1)
+
+# view tax_table
+data.frame(tax_table(ps2024_trawl_co1_glommed))
+```
+
+### Remove samples with low total number of reads. 
+
+Exp/MiFish-
+```{r}
+ps2024_exp_mifish_glommed <- prune_samples(sample_sums(ps2024_exp_mifish_glommed)>=25000, ps2024_exp_mifish_glommed)
+ps2024_exp_mifish <- prune_samples(sample_sums(ps2024_exp_mifish)>=25000, ps2024_exp_mifish)
+
+# plot again
+plot_bar(ps2024_exp_mifish_glommed, x = "Name.Deploy_Cartr_Library")
+
+# how many samples remain?
+dim(sample_data(ps2024_exp_mifish_glommed))[1]
+dim(sample_data(ps2024_exp_mifish))[1]
+```
+
+
+
+Exp/ Elas02-
+```{r}
+ps2024_exp_elas_glommed <- prune_samples(sample_sums(ps2024_exp_elas_glommed)>=25000, ps2024_exp_elas_glommed)
+ps2024_exp_elas <- prune_samples(sample_sums(ps2024_exp_elas)>=25000, ps2024_exp_elas)
+
+# plot again
+plot_bar(ps2024_exp_elas_glommed, x = "Name_Deploy_Cartr_Library")
+
+# how many samples remain?
+dim(sample_data(ps2024_exp_elas_glommed))[1]
+dim(sample_data(ps2024_exp_elas))[1]
+```
+
+
+
+Exp/CO1-
+```{r}
+ps2024_exp_co1_glommed <- prune_samples(sample_sums(ps2024_exp_co1_glommed)>=25000, ps2024_exp_co1_glommed)
+ps2024_exp_co1 <- prune_samples(sample_sums(ps2024_exp_co1)>=25000, ps2024_exp_co1)
+
+# plot again
+plot_bar(ps2024_exp_co1_glommed, x = "Name_Deploy_Cartr")
+
+# how many samples remain?
+dim(sample_data(ps2024_exp_co1_glommed))[1]
+dim(sample_data(ps2024_exp_co1))[1]
+```
+
+
+
+Trawl/MiFish-
+```{r}
+ps2024_trawl_mifish_glommed <- prune_samples(sample_sums(ps2024_trawl_mifish_glommed)>=25000, ps2024_trawl_mifish_glommed)
+
+ps2024_trawl_mifish <- prune_samples(sample_sums(ps2024_trawl_mifish)>=25000, ps2024_trawl_mifish)
+
+# plot again
+plot_bar(ps2024_trawl_mifish_glommed)
+
+# how many samples remain?
+dim(sample_data(ps2024_trawl_mifish_glommed))[1]
+dim(sample_data(ps2024_trawl_mifish))[1]
+```
+
+
+
+Trawl/Elas-
+```{r}
+ps2024_trawl_elas_glommed <- prune_samples(sample_sums(ps2024_trawl_elas_glommed)>=25000, ps2024_trawl_elas_glommed)
+
+ps2024_trawl_elas <- prune_samples(sample_sums(ps2024_trawl_elas)>=25000, ps2024_trawl_elas)
+
+# plot again
+plot_bar(ps2024_trawl_elas_glommed)
+
+# how many samples remain?
+dim(sample_data(ps2024_trawl_elas_glommed))[1]
+dim(sample_data(ps2024_trawl_elas))[1]
+```
+
+
+Trawl/CO1-
+```{r}
+ps2024_trawl_co1_glommed <- prune_samples(sample_sums(ps2024_trawl_co1_glommed)>=25000, ps2024_trawl_co1_glommed)
+ps2024_trawl_co1 <- prune_samples(sample_sums(ps2024_trawl_co1)>=25000, ps2024_trawl_co1)
+
+# plot again
+plot_bar(ps2024_trawl_co1_glommed)
+
+# how many samples remain?
+dim(sample_data(ps2024_trawl_co1_glommed))[1]
+dim(sample_data(ps2024_trawl_co1))[1]
+```
+
+
+
+### Export Tables
+
+Exp/MiFish-
+```{r}
+mifish_2024_exp_asv_table_taxbased <- data.frame(otu_table(ps2024_exp_mifish_glommed))
+mifish_2024_exp_tax_table_taxbased <- rownames_to_column(data.frame(tax_table(ps2024_exp_mifish_glommed)), var = "1stRepresentative_ASV")
+mifish_2024_exp_sample_data_taxbased <- data.frame(sample_data(ps2024_exp_mifish_glommed))
+
+
+# view
+mifish_2024_exp_asv_table_taxbased
+mifish_2024_exp_tax_table_taxbased
+mifish_2024_exp_sample_data_taxbased
+
+# export
+write.csv(mifish_2024_exp_asv_table_taxbased,"figures-expedition/mifish_2024_exp_asv_table_taxbased.csv", row.names = TRUE)
+write.csv(mifish_2024_exp_tax_table_taxbased,"figures-expedition/mifish_2024_exp_tax_table_taxbased.csv", row.names = FALSE)
+write.csv(mifish_2024_exp_sample_data_taxbased,"figures-expedition/mifish_2024_exp_sample_data_taxbased.csv", row.names = TRUE)
+```
+
+
+Exp/Elas02-
+```{r}
+elas_2024_exp_asv_table_taxbased <- data.frame(otu_table(ps2024_exp_elas_glommed))
+elas_2024_exp_tax_table_taxbased <- rownames_to_column(data.frame(tax_table(ps2024_exp_elas_glommed)), var = "1stRepresentative_ASV")
+elas_2024_exp_sample_data_taxbased <- data.frame(sample_data(ps2024_exp_elas_glommed))
+
+
+# view
+elas_2024_exp_asv_table_taxbased
+elas_2024_exp_tax_table_taxbased
+elas_2024_exp_sample_data_taxbased
+
+# export
+write.csv(elas_2024_exp_asv_table_taxbased,"figures-expedition/elas_2024_exp_asv_table_taxbased.csv", row.names = TRUE)
+write.csv(elas_2024_exp_tax_table_taxbased,"figures-expedition/elas_2024_exp_tax_table_taxbased.csv", row.names = FALSE)
+write.csv(elas_2024_exp_sample_data_taxbased,"figures-expedition/elas_2024_exp_sample_data_taxbased.csv", row.names = TRUE)
+```
+
+
+Exp/CO1-
+```{r}
+co1_2024_exp_asv_table_taxbased <- data.frame(otu_table(ps2024_exp_co1_glommed))
+co1_2024_exp_tax_table_taxbased <- rownames_to_column(data.frame(tax_table(ps2024_exp_co1_glommed)), var = "1stRepresentative_ASV")
+co1_2024_exp_sample_data_taxbased <- data.frame(sample_data(ps2024_exp_co1_glommed))
+
+# agglomerating by Species deleted entries in columns following, so re-append common names so they are retained
+co1_2024_exp_tax_table_taxbased <- co1_2024_exp_tax_table_taxbased %>%
+  select(-CommonName, -Taxon.CommonName, -Color)
+
+co1_2024_exp_tax_table_taxbased <- co1_2024_exp_tax_table_taxbased %>%
+  left_join(commonnames, by = c("Species" = "Taxon"))
+
+# view
+co1_2024_exp_asv_table_taxbased
+co1_2024_exp_tax_table_taxbased
+co1_2024_exp_sample_data_taxbased
+
+# export
+write.csv(co1_2024_exp_asv_table_taxbased,"figures-expedition/co1_2024_exp_asv_table_taxbased.csv", row.names = TRUE)
+write.csv(co1_2024_exp_tax_table_taxbased,"figures-expedition/co1_2024_exp_tax_table_taxbased.csv", row.names = FALSE)
+write.csv(co1_2024_exp_sample_data_taxbased,"figures-expedition/co1_2024_exp_sample_data_taxbased.csv", row.names = TRUE)
+```
+
+
+
+Trawl/MiFish-
+```{r}
+mifish_2024_trawl_asv_table_taxbased <- data.frame(otu_table(ps2024_trawl_mifish_glommed))
+mifish_2024_trawl_tax_table_taxbased <- rownames_to_column(data.frame(tax_table(ps2024_trawl_mifish_glommed)), var = "1stRepresentative_ASV")
+mifish_2024_trawl_sample_data_taxbased <- data.frame(sample_data(ps2024_trawl_mifish_glommed))
+
+
+# view
+mifish_2024_trawl_asv_table_taxbased
+mifish_2024_trawl_tax_table_taxbased
+mifish_2024_trawl_sample_data_taxbased
+
+# export
+write.csv(mifish_2024_trawl_asv_table_taxbased,"figures-expedition/mifish_Sept2024_trawl_asv_table_taxbased.csv", row.names = TRUE)
+write.csv(mifish_2024_trawl_tax_table_taxbased,"figures-expedition/mifish_Sept2024_trawl_tax_table_taxbased.csv", row.names = FALSE)
+write.csv(mifish_2024_trawl_sample_data_taxbased,"figures-expedition/mifish_Sept2024_trawl_sample_data_taxbased.csv", row.names = TRUE)
+```
+
+
+
+
+Trawl/Elas-
+```{r}
+elas_2024_trawl_asv_table_taxbased <- data.frame(otu_table(ps2024_trawl_elas_glommed))
+elas_2024_trawl_tax_table_taxbased <- rownames_to_column(data.frame(tax_table(ps2024_trawl_elas_glommed)), var = "1stRepresentative_ASV")
+elas_2024_trawl_sample_data_taxbased <- data.frame(sample_data(ps2024_trawl_elas_glommed))
+
+
+# view
+elas_2024_trawl_asv_table_taxbased
+elas_2024_trawl_tax_table_taxbased
+elas_2024_trawl_sample_data_taxbased
+
+# export
+write.csv(elas_2024_trawl_asv_table_taxbased,"figures-expedition/elas_Sept2024_trawl_asv_table_taxbased.csv", row.names = TRUE)
+write.csv(elas_2024_trawl_tax_table_taxbased,"figures-expedition/elas_Sept2024_trawl_tax_table_taxbased.csv", row.names = FALSE)
+write.csv(elas_2024_trawl_sample_data_taxbased,"figures-expedition/elas_Sept2024_trawl_sample_data_taxbased.csv", row.names = TRUE)
+```
+
+
+Trawl/Co1-
+```{r}
+co1_2024_trawl_asv_table_taxbased <- data.frame(otu_table(ps2024_trawl_co1_glommed))
+co1_2024_trawl_tax_table_taxbased <- rownames_to_column(data.frame(tax_table(ps2024_trawl_co1_glommed)), var = "1stRepresentative_ASV")
+co1_2024_trawl_sample_data_taxbased <- data.frame(sample_data(ps2024_trawl_co1_glommed))
+
+
+# view
+co1_2024_trawl_asv_table_taxbased
+co1_2024_trawl_tax_table_taxbased
+co1_2024_trawl_sample_data_taxbased
+
+# export
+write.csv(co1_2024_trawl_asv_table_taxbased,"figures-expedition/co1_Sept2024_trawl_asv_table_taxbased.csv", row.names = TRUE)
+write.csv(co1_2024_trawl_tax_table_taxbased,"figures-expedition/co1_Sept2024_trawl_tax_table_taxbased.csv", row.names = FALSE)
+write.csv(co1_2024_trawl_sample_data_taxbased,"figures-expedition/co1_Sept2024_trawl_sample_data_taxbased.csv", row.names = TRUE)
+```
+
+
+
+
+Also calculate *relative abundances* (# of ASV sequences/sum total sequences in sample), for some plotting
+
+```{r}
+ps2024_exp_mifish_ra <- microbiome::transform(ps2024_exp_mifish, transform = "compositional")
+ps2024_exp_mifish_glommed_ra <- microbiome::transform(ps2024_exp_mifish_glommed, transform = "compositional")
+
+ps2024_exp_elas_ra <- microbiome::transform(ps2024_exp_elas, transform = "compositional")
+ps2024_exp_elas_glommed_ra <- microbiome::transform(ps2024_exp_elas_glommed, transform = "compositional")
+
+ps2024_exp_co1_ra <- microbiome::transform(ps2024_exp_co1, transform = "compositional")
+ps2024_exp_co1_glommed_ra <- microbiome::transform(ps2024_exp_co1_glommed, transform = "compositional")
+
+
+
+ps2024_trawl_mifish_ra <- microbiome::transform(ps2024_trawl_mifish, transform = "compositional")
+ps2024_trawl_mifish_glommed_ra <- microbiome::transform(ps2024_trawl_mifish_glommed, transform = "compositional")
+
+ps2024_trawl_elas_ra <- microbiome::transform(ps2024_trawl_elas, transform = "compositional")
+ps2024_trawl_elas_glommed_ra <- microbiome::transform(ps2024_trawl_elas_glommed, transform = "compositional")
+
+ps2024_trawl_co1_ra <- microbiome::transform(ps2024_trawl_co1, transform = "compositional")
+ps2024_trawl_co1_glommed_ra <- microbiome::transform(ps2024_trawl_co1_glommed, transform = "compositional")
+
+```
+
+
+Export relative abundance tables
+```{r}
+mifish_2024_exp_asv_table_taxbased_RA <- data.frame(otu_table(ps2024_exp_mifish_glommed_ra))
+elas_2024_exp_asv_table_taxbased_RA <- data.frame(otu_table(ps2024_exp_elas_glommed_ra))
+co1_2024_exp_asv_table_taxbased_RA <- data.frame(otu_table(ps2024_exp_co1_glommed_ra))
+
+mifish_2024_trawl_asv_table_taxbased_RA <- data.frame(otu_table(ps2024_trawl_mifish_glommed_ra))
+elas_2024_trawl_asv_table_taxbased_RA <- data.frame(otu_table(ps2024_trawl_elas_ra))
+co1_2024_trawl_asv_table_taxbased_RA <- data.frame(otu_table(ps2024_trawl_co1_ra))
+
+
+# view
+mifish_2024_exp_asv_table_taxbased_RA
+elas_2024_exp_asv_table_taxbased_RA
+co1_2024_exp_asv_table_taxbased_RA
+mifish_2024_trawl_asv_table_taxbased_RA
+elas_2024_trawl_asv_table_taxbased_RA
+co1_2024_trawl_asv_table_taxbased_RA
+
+
+# export
+write.csv(mifish_2024_exp_asv_table_taxbased_RA,"figures-expedition/mifish_2024_exp_asv_table_taxbased_RA.csv", row.names = TRUE)
+write.csv(elas_2024_exp_asv_table_taxbased_RA,"figures-expedition/elas_2024_exp_asv_table_taxbased_RA.csv", row.names = TRUE)
+write.csv(co1_2024_exp_asv_table_taxbased_RA,"figures-expedition/co1_2024_exp_asv_table_taxbased_RA.csv", row.names = TRUE)
+
+write.csv(mifish_2024_trawl_asv_table_taxbased_RA,"figures-expedition/mifish_2024_trawl_asv_table_taxbased_RA.csv", row.names = TRUE)
+write.csv(elas_2024_trawl_asv_table_taxbased_RA,"figures-expedition/elas_2024_trawl_asv_table_taxbased_RA.csv", row.names = TRUE)
+write.csv(co1_2024_trawl_asv_table_taxbased_RA,"figures-expedition/co1_2024_trawl_asv_table_taxbased_RA.csv", row.names = TRUE)
+
+
+```
+
+
+#### Save
+```{r}
+save.image(file = "figures-expedition/environment_upto_export.RData")
+```
+
+load if returning
+```{r}
+load("figures-expedition/figures-expedition/environment_upto_export.RData")
+```
+
+
+
